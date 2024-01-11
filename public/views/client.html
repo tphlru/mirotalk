@@ -1,0 +1,899 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <!-- Title and Icon -->
+
+        <title>RepinaRoom WebRTC Video call</title>
+        <link rel="shortcut icon" href="../images/favicon.png" />
+        <link rel="apple-touch-icon" href="../images/favicon.png" />
+
+        <!-- Meta Information -->
+
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <meta
+            name="viewport"
+            content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"
+        />
+
+        <!-- https://ogp.me -->
+
+        <meta property="og:type" content="app-webrtc" />
+        <meta property="og:site_name" content="RepinaRoom" />
+        <meta property="og:title" content="Нажмите на ссылку, чтобы присоединится к звонку." />
+        <meta property="og:description" content="RepinaRoom WebRTC Video call" />
+        <meta property="og:image" content="https://p2p.mirotalk.com/images/preview.png" />
+        <!-- <meta property="og:url" content="https://p2p.mirotalk.org" /> -->
+        <link rel="icon" type="image/ico" sizes="32x32" href="../images/favicon.ico" />
+
+        <!-- StyleSheet -->
+
+        <link rel="stylesheet" href="../css/client.css" />
+        <link rel="stylesheet" href="../css/videoGrid.css" />
+        <link rel="stylesheet" href="../css/whiteboard.css" />
+
+        <!-- https://cdnjs.com/libraries/font-awesome -->
+
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" />
+
+        <!-- https://animate.style 4 using for swal fadeIn-Out -->
+
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+
+        <!-- flatpickr  https://flatpickr.js.org/themes/ -->
+
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
+        <link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/airbnb.css" />
+
+        <!-- JavaScripts -->
+
+        <script async src="../js/umami.js"></script>
+    </head>
+
+    <body onload="initClientPeer()">
+        <noscript>You need to enable JavaScript to run this app.</noscript>
+
+        <!-- just 4SEO Optimization -->
+
+        <div id="webRTCSeo">
+            <h1>WebRTC</h1>
+        </div>
+
+        <!-- show this before to join -->
+
+        <div id="loadingDiv" class="center pulsate">
+            <h1>Загрузка</h1>
+            <img src="../images/loader2.gif" style="width: 600px" />
+            <pre>
+                Пожалуйста, разрешите сайту доступ к камере и микрофону, чтобы продолжить
+            </pre>
+        </div>
+
+        <!-- init user devices -->
+
+        <div id="initUser" class="init-user hidden">
+            <!-- <p>Please allow the camera & microphone access to use this app.</p> -->
+            <div id="initVideoContainer" class="init-video-container">
+                <video
+                    id="initVideo"
+                    playsinline="true"
+                    autoplay=""
+                    class="mirror"
+                    poster="../images/loader.gif"
+                    style="object-fit: contain"
+                ></video>
+            </div>
+            <div class="initComands">
+                <button id="initVideoBtn" class="fas fa-video" onclick="handleVideo(event, true)"></button>
+                <button id="initAudioBtn" class="fas fa-microphone" onclick="handleAudio(event, true)"></button>
+                <button id="initScreenShareBtn" class="fas fa-desktop"></button>
+                <select id="initVideoSelect" class="form-select text-light bg-dark"></select>
+                <select id="initMicrophoneSelect" class="form-select text-light bg-dark"></select>
+                <select id="initSpeakerSelect" class="form-select text-light bg-dark"></select>
+            </div>
+        </div>
+
+        <!-- Start buttons bar https://fontawesome.com/icons?d=gallery -->
+
+        <div id="buttonsBar" class="fadein">
+            <button id="shareRoomBtn" class="fas fa-share-alt"></button>
+            <button id="hideMeBtn" class="fas fa-user"></button>
+            <button id="videoBtn" class="fas fa-video"></button>
+            <button id="swapCameraBtn" class="fas fa-camera-rotate"></button>
+            <button id="audioBtn" class="fas fa-microphone"></button>
+            <button id="screenShareBtn" class="fas fa-desktop"></button>
+            <button id="recordStreamBtn" class="fas fa-record-vinyl"></button>
+            <button id="fullScreenBtn" class="fas fa-expand-alt"></button>
+            <button id="chatRoomBtn" class="fas fa-comment"></button>
+            <button id="captionBtn" class="fas fa-closed-captioning"></button>
+            <button id="roomEmojiPickerBtn" class="fas fa-face-smile"></button>
+            <button id="myHandBtn" class="fas fa-hand-paper"></button>
+            <button id="whiteboardBtn" class="fas fa-chalkboard-teacher"></button>
+            <button id="fileShareBtn" class="fas fa-folder-open"></button>
+            <button id="documentPiPBtn" class="fas fa-images"></button>
+            <button id="mySettingsBtn" class="fas fa-cogs"></button>
+            <button id="aboutBtn" class="fas fa-question"></button>
+            <button id="leaveRoomBtn" class="fas fa-right-from-bracket"></button>
+        </div>
+        <!-- End left buttons -->
+
+        <!-- Start room emoji picker -->
+
+        <div id="emojiPickerContainer" class="roomEmoji fadein">
+            <div id="emojiPickerHeader" class="emojiPickerHeader">
+                <button id="closeEmojiPickerContainer" class="fas fa-times"></button>
+            </div>
+        </div>
+        <div id="userEmoji" class="userEmoji"></div>
+
+        <!-- End room emoji picker -->
+
+        <!-- Start chat room 
+        https://codepen.io/sajadhsm/pen/odaBdd
+        https://getemoji.com
+        -->
+
+        <section id="msgerDraggable" class="msger-draggable fadein">
+            <section id="msger" class="msger">
+                <header id="msgerHeader" class="msger-header">
+                    <div class="msger-header-title">
+                        <button id="msgerClose" class="fas fa-times"></button>
+                        <button id="msgerMaxBtn" class="fas fa-expand"></button>
+                        <button id="msgerMinBtn" class="fas fa-compress"></button>
+                        <div id="msgerShowChatOnMsgDiv" style="margin-left: 10px" class="title">
+                            <i class="fa-solid fa-eye"></i>
+                            <label style="margin-left: 10px" class="switch">
+                                <input id="msgerShowChatOnMsg" type="checkbox" checked />
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                        <div id="msgerSpeechMsgDiv" class="title">
+                            <i style="margin-left: 10px" class="fas fa-volume-high"></i>
+                            <label style="margin-left: 10px" class="switch">
+                                <input id="msgerSpeechMsg" type="checkbox" />
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="msger-header-options">
+                        <button id="msgerTheme" class="fas fa-ghost"></button>
+                        <button id="msgerSaveBtn" class="fas fa-save"></button>
+                        <button id="msgerClean" class="fas fa-trash"></button>
+                    </div>
+                </header>
+
+                <main id="msgerChat" class="msger-chat"></main>
+
+                <!-- Start emoji picker -->
+
+                <section id="msgerEmojiPicker" class="hidden fadein chatEmojiPicker"></section>
+
+                <!-- End emoji picker -->
+
+                <div class="msger-inputarea">
+                    <textarea
+                        rows="1"
+                        cols="1"
+                        id="msgerInput"
+                        class="msger-input"
+                        placeholder="Write a message..."
+                    ></textarea>
+                </div>
+
+                <div class="msger-input-buttons">
+                    <button id="msgerEmojiBtn" class="fas fa-smile"></button>
+                    <button id="msgerMarkdownBtn" class="fab fa-markdown"></button>
+                    <button id="msgerGPTBtn" class="fas fa-robot"></button>
+                    <button id="msgerShareFileBtn" class="fas fa-paperclip"></button>
+                    <button id="msgerVideoUrlBtn" class="fab fa-youtube"></button>
+                    <button id="msgerCPBtn" class="fas fa-users"></button>
+                    <button id="msgerCleanTextBtn" class="fas fa-trash"></button>
+                    <button id="msgerPasteBtn" class="fas fa-paste"></button>
+                    <button id="msgerSendBtn" class="fas fa-paper-plane"></button>
+                </div>
+            </section>
+
+            <!-- Start private msg -->
+
+            <section id="msgerCP" class="center fadein">
+                <section id="msgerCPSec" class="msger">
+                    <header id="msgerCPHeader" class="msger-private-header">
+                        <div class="msger-header-title"><i class="fas fa-comment-alt"></i> Отправить личное сообщение</div>
+                        <div class="msger-header-options">
+                            <button id="msgerCPCloseBtn" class="fas fa-times"></button>
+                        </div>
+                    </header>
+                    <main id="msgerCPChat" class="msger-chat">
+                        <div class="search-container">
+                            <input
+                                id="searchPeerBarName"
+                                type="text"
+                                placeholder=" 🔍 Поиск по имени..."
+                                maxlength="32"
+                                name="search"
+                                onkeyup="searchPeer()"
+                            />
+                        </div>
+                        <br />
+                        <div id="msgerCPList"></div>
+                    </main>
+                </section>
+            </section>
+
+            <!-- End private msg -->
+        </section>
+
+        <!-- End chat room -->
+
+        <!-- Start of caption section -->
+
+        <section id="captionDraggable" class="caption-draggable fadein">
+            <section id="caption" class="caption">
+                <header id="captionHeader" class="caption-header">
+                    <div class="caption-header-title">
+                        <button id="captionClose" class="fas fa-times"></button>
+                        <button id="captionMaxBtn" class="fas fa-expand"></button>
+                        <button id="captionMinBtn" class="fas fa-compress"></button>
+                        <button id="speechRecognitionIcon" class="fas fa-microphone-alt"></button>
+                    </div>
+                    <div class="caption-header-options">
+                        <button id="captionTheme" class="fas fa-ghost"></button>
+                        <button id="captionSaveBtn" class="fas fa-save"></button>
+                        <button id="captionClean" class="fas fa-trash"></button>
+                    </div>
+                </header>
+
+                <main id="captionChat" class="caption-chat"></main>
+                <div class="caption-inputarea">
+                    <select id="recognitionLanguage"></select>
+                    <select id="recognitionDialect"></select>
+                    <button id="speechRecognitionStart" class="fas fa-play">&nbsp;Запуск</button>
+                    <button id="speechRecognitionStop" class="fas fa-stop">&nbsp;Стоп</button>
+                </div>
+            </section>
+        </section>
+
+        <!-- End of caption section -->
+
+        <!-- Start my settings -->
+
+        <section id="mySettings" class="center fadein">
+            <header id="mySettingsHeader">
+                <button id="mySettingsCloseBtn" class="fas fa-times"></button>
+            </header>
+            <main class="mySettingsMain">
+                <div class="tab">
+                    <button id="tabRoomBtn" class="fas fa-home tablinks">
+                        <p class="tabButtonText">Настройки комнаты</p>
+                    </button>
+                    <button id="tabVideoBtn" class="fas fa-video tablinks">
+                        <p class="tabButtonText">Видео</p>
+                    </button>
+                    <button id="tabAudioBtn" class="fas fa-microphone tablinks">
+                        <p class="tabButtonText">Аудио</p>
+                    </button>
+                    <button id="tabRecordingBtn" class="fas fa-record-vinyl tablinks">
+                        <p class="tabButtonText">Запись</p>
+                    </button>
+                    <button id="tabVideoShareBtn" class="fab fa-youtube tablinks">
+                        <p class="tabButtonText">Дополнительные медиа</p>
+                    </button>
+                    <button id="tabParticipantsBtn" class="fa-solid fa-users tablinks">
+                        <p class="tabButtonText">Участники</p>
+                    </button>
+                    <button id="tabProfileBtn" class="fa-solid fa-user tablinks">
+                        <p class="tabButtonText">Мой профиль</p>
+                    </button>
+                    <button id="tabStylingBtn" class="fas fa-palette tablinks">
+                        <p class="tabButtonText">Стиль</p>
+                    </button>
+                    <button id="tabLanguagesBtn" class="fas fa-globe tablinks" style="display: none;">
+                        <p class="tabButtonText">Language</p>
+                    </button>
+                </div>
+
+                <div class="tabActions">
+                    <div id="tabRoom" class="tabcontent">
+                        <br />
+                        <table class="settingsTable">
+                            <tr>
+                                <td>
+                                    <div class="title">
+                                        <i class="fa-solid fa-person-shelter"></i>
+                                        <p id="myRoomId" style="cursor: pointer">
+                                            xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+                                        </p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </table>
+                        <div id="tabRoomSecurity">
+                            <button id="lockRoomBtn"><i class="fas fa-lock-open"></i>&nbsp;Заблокировать комнату паролем</button>
+                            <button id="unlockRoomBtn"><i class="fas fa-lock"></i>&nbsp;Разблокировать</button>
+                            <br />
+                        </div>
+                        <div style="margin-bottom: 5px">
+                            <button id="roomSendEmailBtn">
+                                <i class="fas fa-envelope-circle-check"></i>&nbsp;Send email invitation
+                                <br />
+                            </button>
+                        </div>
+                        <br />
+                        <table id="mySettingsTable">
+                            <tr>
+                                <td class="width-140">
+                                    <div class="title">
+                                        <i class="fas fa-microphone-lines"></i>
+                                        <p>Микрофон</p>
+                                    </div>
+                                </td>
+                                <td><input id="switchAudioPitchBar" class="toggle" type="checkbox" checked /></td>
+                            </tr>
+                            <tr>
+                                <td class="width-140">
+                                    <div class="title">
+                                        <i class="fas fa-music"></i>
+                                        <p>Звук</p>
+                                    </div>
+                                </td>
+                                <td><input id="switchSounds" class="toggle" type="checkbox" checked /></td>
+                            </tr>
+                            <tr id="shareOnJoinButton">
+                                <td class="width-140">
+                                    <div class="title">
+                                        <i class="fas fa-share-alt"></i>
+                                        <p>Поделиться</p>
+                                    </div>
+                                </td>
+                                <td><input id="switchShare" class="toggle" type="checkbox" checked /></td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <div id="tabVideo" class="tabcontent">
+                        <br />
+                        <div>
+                            <div class="title">
+                                <i class="fas fa-video"></i>
+                                <p>Источник видео</p>
+                            </div>
+                            <br />
+                            <select id="videoSource"></select>
+                        </div>
+                        <br />
+                        <div class="title">
+                            <i class="fas fa-palette"></i>
+                            <p>Качество видео</p>
+                        </div>
+                        <br />
+                        <select id="videoQuality">
+                            <option value="default">По-умолчанию (рекомендуется)</option>
+                            <option value="qvgaVideo">Очень низкое (QVGA)</option>
+                            <option value="vgaVideo">Низкое (VGA)</option>
+                            <option value="hdVideo">Нормальное (HD)</option>
+                            <option value="fhdVideo">Хорошее (FullHD)</option>
+                            <option value="2kVideo">Высокое (2K)</option>
+                            <option value="4kVideo">Слишком высокое (4K)</option>
+                        </select>
+                        <br />
+                        <div class="title">
+                            <i class="fa-solid fa-film"></i>
+                            <p>Трансформация видеоизображения</p>
+                        </div>
+                        <br />
+                        <select id="videoObjFitSelect">
+                            <option value="fill">Заполнять</option>
+                            <option value="contain">Составлять</option>
+                            <option value="cover">Перекрывать</option>
+                            <option value="scale-down">Сжать</option>
+                            <option value="none">Не изменять</option>
+                        </select>
+                        <div id="videoFpsDiv">
+                            <br />
+                            <div class="title">
+                                <i class="fa-solid fa-camera"></i>
+                                <p>Частота кадров камеры(FPS) - передача</p>
+                            </div>
+                            <br />
+                            <select id="videoFps">
+                                <option value="60">60 fps - Высокая</option>
+                                <option value="30">30 fps - Нормальная</option>
+                                <option value="15">15 fps - Низкая (для плохого интернета)</option>
+                                <option value="5">5 fps - Очень низкая</option>
+                            </select>
+                        </div>
+                        <div id="screenFpsDiv">
+                            <br />
+                            <div class="title">
+                                <i class="fa-solid fa-desktop"></i>
+                                <p>Частота кадров (FPS) собеседника - приём </p>
+                            </div>
+                            <br />
+                            <select id="screenFps">
+                                <option value="60">60 fps - Высокая</option>
+                                <option value="30">30 fps - Нормальная</option>
+                                <option value="15">15 fps - Низкая (для плохого интернета)</option>
+                                <option value="5">5 fps - Очень низкая</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="tabAudio" class="tabcontent">
+                        <br />
+                        <div>
+                            <div class="title">
+                                <i class="fas fa-microphone"></i>
+                                <p>Микрофон</p>
+                            </div>
+                            <br />
+                            <select id="audioSource"></select>
+                        </div>
+                        <br />
+                        <div class="volume-container">
+                            <div class="volume-bar"></div>
+                            <div class="volume-bar"></div>
+                            <div class="volume-bar"></div>
+                            <div class="volume-bar"></div>
+                            <div class="volume-bar"></div>
+                            <div class="volume-bar"></div>
+                            <div class="volume-bar"></div>
+                            <div class="volume-bar"></div>
+                            <div class="volume-bar"></div>
+                            <div class="volume-bar"></div>
+                        </div>
+                        <br />
+                        <div class="dropdown" id="dropDownMicOptions">
+                            <button class="buttons" id="micOptionsBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-screwdriver-wrench"></i>
+                                <p>Расширенные настройки</p>
+                                <i class="fas fa-caret-down"></i>
+                            </button>
+                            <br /><br /><br /><br />
+                            <div class="dropdown-menu" aria-labelledby="micOptionsBtn">
+                                <table class="mySettingsTable">
+                                    <tr id="autoGainControlButton">
+                                        <td class="microphone-table-width">
+                                            <div class="title">
+                                                <!-- <i class="fas fa-ear-listen"></i> -->
+                                                <p>Автоматическая настройка</p>
+                                            </div>
+                                        </td>
+                                        <td><input class="toggle" id="switchAutoGainControl" type="checkbox" /></td>
+                                    </tr>
+                                    <tr id="echoCancellationButton">
+                                        <td class="microphone-table-width">
+                                            <div class="title">
+                                                <!-- <i class="fas fa-ear-listen"></i> -->
+                                                <p>Устранять эхо</p>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <input class="toggle" id="switchEchoCancellation" type="checkbox" checked />
+                                        </td>
+                                    </tr>
+                                    <tr id="noiseSuppressionButton">
+                                        <td class="microphone-table-width">
+                                            <div class="title">
+                                                <!-- <i class="fas fa-ear-listen"></i> -->
+                                                <p>Шумоподавление</p>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <input class="toggle" id="switchNoiseSuppression" type="checkbox" checked />
+                                        </td>
+                                    </tr>
+                                    <tr id="micLatencyButton">
+                                        <td class="microphone-table-width">
+                                            <div class="title">
+                                                <!-- <i class="fab fa-audible"></i> -->
+                                                <p>Задкржка микрофона</p>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="title">
+                                                <input
+                                                    type="range"
+                                                    class="mic-input-range"
+                                                    id="micLatencyRange"
+                                                    name="latency"
+                                                    min="10"
+                                                    max="1000"
+                                                    value="50"
+                                                    step="10"
+                                                />
+                                                <p><span id="micLatencyValue">50</span>&nbsp;ms</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr id="micVolumeButton">
+                                        <td class="microphone-table-width">
+                                            <div class="title">
+                                                <!-- <i class="fas fa-volume-high"></i> -->
+                                                <p>Уровень громкости</p>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div>
+                                                <input
+                                                    type="range"
+                                                    class="mic-input-range"
+                                                    id="micVolumeRange"
+                                                    name="volume"
+                                                    min="0"
+                                                    max="100"
+                                                    value="100"
+                                                    step="10"
+                                                />
+                                                <p><span id="micVolumeValue">100</span>&nbsp;%</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr id="sampleRateButton">
+                                        <td class="microphone-table-width">
+                                            <div class="title">
+                                                <!-- <i class="fas fa-microphone-lines"></i> -->
+                                                <p>Частота дискретизации</p>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <select id="sampleRateSelect">
+                                                <option value="48000">48000 Hz</option>
+                                                <option value="44100">44100 Hz</option>
+                                            </select>
+                                        </td>
+                                    </tr>
+                                    <tr id="sampleSizeButton">
+                                        <td class="microphone-table-width">
+                                            <div class="title">
+                                                <!-- <i class="fas fa-microphone-lines"></i> -->
+                                                <p>Размер пакета</p>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <select id="sampleSizeSelect">
+                                                <option value="16">16 bits</option>
+                                                <option value="32">32 bits</option>
+                                            </select>
+                                        </td>
+                                    </tr>
+                                    <tr id="channelCountButton">
+                                        <td class="microphone-table-width">
+                                            <div class="title">
+                                                <!-- <i class="fas fa-microphone-lines"></i> -->
+                                                <p>Число аудиоканалов</p>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <select id="channelCountSelect">
+                                                <option value="1">1 (mono)</option>
+                                                <option value="2">2 (стерео-микрофон)</option>
+                                            </select>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <button class="buttons" id="applyAudioOptionsBtn">Сохранить изменения</button>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                        <div id="audioOutputDiv">
+                            <div class="title">
+                                <i class="fas fa-headphones"></i>
+                                <p>Громкоговоритель</p>
+                            </div>
+                            <br />
+                            <select id="audioOutput"></select>
+                            <button id="speakerTestBtn" class="buttons">
+                                <i class="fa-solid fa-circle-play"></i>
+                                <p>Проверка звука</p>
+                            </button>
+                            <br /><br /><br /><br /><br />
+                        </div>
+                        <table id="mySettingsTable">
+                            <tr id="pushToTalkDiv">
+                                <td class="width-130">
+                                    <div class="title">
+                                        <i class="fa-solid fa-hand-pointer"></i>
+                                        <p>Push to talk</p>
+                                    </div>
+                                </td>
+                                <td><input id="switchPushToTalk" class="toggle" type="checkbox" /></td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <div id="tabRecording" class="tabcontent">
+                        <img id="recImage" src="../images/recording.png" />
+                        <div id="recOptions">
+                            <table class="settingsTable">
+                                <tr>
+                                    <td class="width-160">
+                                        <div class="title">
+                                            <i class="fa-solid fa-film"></i>
+                                            <p>Предпочитать H.264</p>
+                                        </div>
+                                    </td>
+                                    <td><input class="toggle" id="switchH264Recording" type="checkbox" /></td>
+                                </tr>
+                            </table>
+                            <hr class="hr" />
+                        </div>
+                        <div style="display: table-row">
+                            <span class="clw notranslate" id="recordingTime"></span>
+                            <br />
+                            <button id="pauseRecBtn" class="buttons" style="display: none">
+                                <i class="far fa-pause-circle"></i>
+                                <p>Приостановить запись</p>
+                            </button>
+                            <button id="resumeRecBtn" class="buttons" style="display: none">
+                                <i class="far fa-play-circle"></i>
+                                <p>Продолжить запись</p>
+                            </button>
+                        </div>
+                        <div class="clw" id="lastRecordingInfo"></div>
+                    </div>
+
+                    <div id="tabMedia" class="tabcontent">
+                        <br />
+                        <button id="shareMediaAudioVideoBtn" class="buttons">
+                            <i class="fa-solid fa-circle-play"></i>
+                            <p>Поделиться внешним аудио или видео</p>
+                        </button>
+                    </div>
+
+                    <div id="tabParticipants" class="tabcontent">
+                        <br />
+                        <div class="title">
+                            <i class="fa-solid fa-users"></i>
+                            <p id="peersCount"></p>
+                        </div>
+                        <br />
+                        <div id="tabRoomParticipants">
+                            <br />
+                            <button id="muteEveryoneBtn"><i class="fas fa-microphone"></i>&nbsp;Выключить микрофон всех участников</button>
+                            <button id="hideEveryoneBtn"><i class="fas fa-video"></i>&nbsp;Скрыть всех участников</button>
+                            <button id="ejectEveryoneBtn">
+                                <i class="fas fa-right-from-bracket"></i>&nbsp;Выбросить всех из конференции
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="tabProfile" class="tabcontent">
+                        <div id="tabRoomPeerName">
+                            <div>
+                                <img id="myProfileAvatar" />
+                            </div>
+                            <br />
+                            <div class="title">
+                                <i class="fas fa-user"></i>
+                                <p>Имя</p>
+                            </div>
+                            <br /><br />
+                            <div>
+                                <input id="myPeerNameSet" type="text" placeholder="Change name..." maxlength="32" />
+                                <button id="myPeerNameSetBtn"><i class="fas fa-user-edit"></i>&nbsp;Изменить имя</button>
+                            </div>
+                        </div>
+                        <br />
+                        <div class="title">
+                            <i class="fa-solid fa-user-shield"></i>
+                            <p>Говорящий:</p>
+                            <p id="isPeerPresenter">true</p>
+                        </div>
+                    </div>
+
+                    <div id="tabStyling" class="tabcontent">
+                        <br />
+                        <div class="title">
+                            <i class="fa-solid fa-palette"></i>
+                            <p>Тема</p>
+                        </div>
+                        <br />
+                        <select id="mirotalkTheme">
+                            <option value="dark">⚫️ Тёмый</option>
+                            <option value="grey">⚪️ Серый</option>
+                            <option value="green">🟢 Зелёный</option>
+                            <option value="blue">🔵 Синий</option>
+                            <option value="red">🔴 Красный</option>
+                        </select>
+                        <br />
+                        <div class="title">
+                            <i class="fa-solid fa-up-down-left-right"></i>
+                            <p>Панель кнопок</p>
+                        </div>
+                        <br />
+                        <select id="mainButtonsBarPosition">
+                            <option value="vertical">Вертикально</option>
+                            <option value="horizontal">Горизонтально</option>
+                        </select>
+                        <br />
+                        <div id="pinUnpinGridDiv">
+                            <div class="title">
+                                <i class="fa-solid fa-map-pin"></i>
+                                <p>Положеие закреплённого участника</p>
+                            </div>
+                            <br />
+                            <select id="pinVideoPositionSelect">
+                                <option value="vertical">Вертикально</option>
+                                <option value="horizontal">Горизонтально</option>
+                                <option value="top">Наверху</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <br />
+                </div>
+            </main>
+        </section>
+
+        <!-- End my settings -->
+
+        <!-- Start whiteboard -->
+
+        <section id="whiteboard" class="hidden">
+            <header id="whiteboardHeader" class="whiteboard-header">
+                <div id="whiteboardTitle" class="whiteboard-header-title">
+                    <button id="whiteboardCloseBtn" class="fas fa-times"></button>
+                    <label id="whiteboardLockBtn" class="switch">
+                        <input type="checkbox" />
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div id="whiteboardOptions" class="whiteboard-header-options">
+                    <button id="whiteboardGhostButton" class="fas fa-circle-half-stroke"></button>
+                    <input id="wbBackgroundColorEl" class="whiteboardColorPicker" type="color" value="#000000" />
+                    <input id="wbDrawingColorEl" class="whiteboardColorPicker" type="color" value="#FFFFFF" />
+                    <button id="whiteboardPencilBtn" class="fas fa-pencil-alt"></button>
+                    <button id="whiteboardObjectBtn" class="fas fa-mouse-pointer"></button>
+                    <button id="whiteboardUndoBtn" class="fas fa-undo"></button>
+                    <button id="whiteboardRedoBtn" class="fas fa-redo"></button>
+                    <button id="whiteboardPdfFileBtn" class="far fa-file-pdf"></button>
+                    <button id="whiteboardImgFileBtn" class="far fa-image"></button>
+                    <button id="whiteboardImgUrlBtn" class="fas fa-link"></button>
+                    <button id="whiteboardTextBtn" class="fas fa-spell-check"></button>
+                    <button id="whiteboardLineBtn" class="fas fa-slash"></button>
+                    <button id="whiteboardRectBtn" class="far fa-square"></button>
+                    <button id="whiteboardTriangleBtn" class="fas">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16px"
+                            height="16px"
+                            viewBox="0 0 24 24"
+                            fill="#FFFFFF"
+                        >
+                            <path d="M12 5.887l8.468 14.113h-16.936l8.468-14.113zm0-3.887l-12 20h24l-12-20z" />
+                        </svg>
+                    </button>
+                    <button id="whiteboardCircleBtn" class="far fa-circle"></button>
+                    <button id="whiteboardSaveBtn" class="fas fa-save"></button>
+                    <button id="whiteboardEraserBtn" class="fas fa-eraser"></button>
+                    <button id="whiteboardCleanBtn" class="fas fa-trash"></button>
+                </div>
+            </header>
+            <main>
+                <canvas id="wbCanvas"></canvas>
+            </main>
+        </section>
+
+        <!-- End whiteboard -->
+
+        <!-- Start File Send -->
+
+        <div id="sendFileDiv" class="center fadein">
+            <img id="imgShareSend" src="../images/share.png" alt="mirotalk-share-send" class="center-img" /><br />
+            <div id="sendFileInfo"></div>
+            <div id="sendFilePercentage"></div>
+            <progress id="sendProgress" max="0" value="0"></progress>
+            <button id="sendAbortBtn"><i class="fas fa-stop-circle"></i>&nbsp; Отмена</button>
+        </div>
+
+        <!-- End File Send -->
+
+        <!-- Start File Receive -->
+
+        <div id="receiveFileDiv" class="center fadein">
+            <img id="imgShareReceive" src="../images/share.png" alt="mirotalk-share-receive" class="center-img" /><br />
+            <div id="receiveFileInfo"></div>
+            <div id="receiveFilePercentage"></div>
+            <progress id="receiveProgress" max="0" value="0"></progress>
+            <button id="receiveHideBtn"><i class="fas fa-eye-slash"></i>&nbsp; Скрыть</button>
+        </div>
+
+        <!-- Stop File Receive -->
+
+        <!-- Start video URL iframe -->
+
+        <div id="videoUrlCont" class="center fadein">
+            <div id="videoUrlHeader">
+                <button id="videoUrlCloseBtn" class="fas fa-times"></button>
+            </div>
+            <br />
+            <iframe
+                id="videoUrlIframe"
+                title="Video Url Player"
+                src=""
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen
+            ></iframe>
+        </div>
+
+        <!-- End Youtube Iframe -->
+
+        <!-- Start Video - Audio player -->
+
+        <div id="videoAudioUrlCont" class="center fadein">
+            <div id="videoAudioUrlHeader">
+                <button id="videoAudioCloseBtn" class="fas fa-times"></button>
+            </div>
+            <br />
+            <video id="videoAudioUrlElement" src="" autoplay controls></video>
+        </div>
+
+        <!-- End Video - Audio player -->
+
+        <!-- Start Video container -->
+
+        <div id="videoPinMediaContainer"></div>
+        <div id="videoMediaContainer">
+            <!-- <div class="Camera">
+                <video></video>
+            </div> -->
+        </div>
+
+        <div id="audioMediaContainer" style="display: none">
+            <!-- <div>
+                <audio></audio>
+            </div>-->
+        </div>
+
+        <!-- End Video container -->
+
+        <!--
+        - JS scripts https://cdn.jsdelivr.net
+        
+        - https://webrtc.github.io/adapter/adapter-latest.js                (https://github.com/webrtcHacks/adapter)
+        - https://github.com/leizongmin/js-xss                              (https://www.npmjs.com/package/xss)
+        - https://www.npmjs.com/package/marked                              (https://github.com/markedjs/marked)
+        - https://www.npmjs.com/package/detectrtc                           (https://github.com/muaz-khan/DetectRTC)
+        - https://www.npmjs.com/package/sweetalert2                         (https://github.com/sweetalert2/sweetalert2)
+        - https://www.npmjs.com/package/fabric                              (https://github.com/fabricjs/fabric.js)
+        - https://www.npmjs.com/package/qrious                              (https://github.com/neocotic/qrious)
+        - https://cdn.jsdelivr.net/npm/emoji-mart@latest/dist/browser.js    (https://github.com/missive/emoji-mart)
+        - https://mozilla.github.io/pdf.js/                                 (https://github.com/mozilla/pdf.js)
+        - https://www.jsdelivr.com/package/npm/crypto-js                    (https://github.com/brix/crypto-js/)
+        - https://www.npmjs.com/package/tippy.js                            (https://github.com/atomiks/tippyjs) 
+        - https://flatpickr.js.org/                                         (https://github.com/flatpickr/flatpickr)
+        -->
+        <script defer src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+        <script defer src="https://rawgit.com/leizongmin/js-xss/master/dist/xss.js"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/detectrtc@1.4.1/DetectRTC.min.js"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/sweetalert2@11.4.8"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/fabric@5.3.0-browser/dist/fabric.min.js"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/emoji-mart@latest/dist/browser.js"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+        <script defer src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+        <!-- <script defer src="https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/index.min.js"></script> -->
+        <script defer src="https://unpkg.com/@popperjs/core@2"></script>
+        <script defer src="https://unpkg.com/tippy.js@6"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+        <script defer src="/socket.io/socket.io.js"></script>
+        <script defer src="../js/localStorage.js"></script>
+        <script defer src="../js/helpers.js"></script>
+        <script defer src="../js/client.js"></script>
+        <script defer src="../js/detectSpeaking.js"></script>
+        <script defer src="../js/speechRecognition.js"></script>
+        <script defer src="../js/videoGrid.js"></script>
+
+        <!-- end of Js scripts -->
+
+        <!-- 
+		the <video> and <audio> tags are all added and removed dynamically
+		in 'onAddStream', 'setupLocalMedia', and 'removePeer'/'disconnect'
+		-->
+
+    </body>
+</html>
